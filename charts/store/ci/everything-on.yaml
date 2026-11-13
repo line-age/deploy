@@ -1,0 +1,8 @@
+# CI: every optional Job on, so each one is rendered and run.
+qgisProject:
+  enabled: true
+  host: db.example
+counties:
+  enabled: true
+github:
+  teams: [line-age/team-store]

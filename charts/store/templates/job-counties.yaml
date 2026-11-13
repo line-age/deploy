@@ -1,0 +1,43 @@
+{{- if .Values.counties.enabled }}
+# Loads historical county boundaries for the QGIS project's county layer. Downloads about
+# 50 MB the first time; on later upgrades it sees the rows and stops.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "store.fullname" . }}-counties
+  labels:
+    {{- include "store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: counties
+  annotations:
+    {{- include "store.hookAnnotations" (dict "hook" "post-install,post-upgrade" "weight" 5) | nindent 4 }}
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        {{- include "store.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: counties
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      {{- include "store.podCommon" . | nindent 6 }}
+      containers:
+        - name: counties
+          image: {{ .Values.counties.image.repository }}:{{ .Values.counties.image.tag | default (.Values.image.tag | default .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.counties.image.pullPolicy }}
+          env:
+            - name: PG_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "store.databaseSecret" . }}
+                  key: {{ .Values.counties.pgUrlKey }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.counties.resources | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+{{- end }}

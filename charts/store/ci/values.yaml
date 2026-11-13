@@ -1,0 +1,3 @@
+# CI: the Secret ci/postgis.yaml makes.
+database:
+  existingSecret: store-db

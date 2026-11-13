@@ -1,0 +1,39 @@
+# Test only: a throwaway PostGIS and the Secret the chart reads, for installing the chart
+# in a kind cluster (CI and local checks). Not for any real deployment (L-0006).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: store-db
+stringData:
+  DATABASE_URL: postgres://lineage:lineage@postgis:5432/lineage?sslmode=disable
+  PG_URL: "PG:host=postgis port=5432 dbname=lineage user=lineage password=lineage"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgis
+spec:
+  selector: {app: postgis}
+  ports: [{port: 5432}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgis
+spec:
+  selector: {matchLabels: {app: postgis}}
+  template:
+    metadata:
+      labels: {app: postgis}
+    spec:
+      containers:
+        - name: postgis
+          image: postgis/postgis:16-3.4
+          env:
+            - {name: POSTGRES_USER, value: lineage}
+            - {name: POSTGRES_PASSWORD, value: lineage}
+            - {name: POSTGRES_DB, value: lineage}
+          ports: [{containerPort: 5432}]
+          readinessProbe:
+            exec: {command: [pg_isready, -U, lineage]}
+            periodSeconds: 2

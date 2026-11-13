@@ -1,0 +1,94 @@
+# Generic defaults only (controlplane L-0006, L-0009): no hostnames, secrets or
+# environment values. Whoever runs Lineage supplies those.
+
+image:
+  repository: ghcr.io/line-age/store
+  # Defaults to the chart's appVersion. Pin a `sha-<commit>` or release tag in real use.
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+replicaCount: 1
+
+# The PostGIS database. Required: a Secret you create, holding the connection URL.
+# The database must have PostGIS available (the first migration runs CREATE EXTENSION).
+database:
+  existingSecret: ""
+  # postgres://user:password@host:5432/dbname?sslmode=require
+  urlKey: DATABASE_URL
+
+# Who may write (controlplane L-0012): people sign in with GitHub and must be in one of
+# these teams, "org/team-slug". Empty: only pipeline tokens work.
+github:
+  teams: []
+  api: https://api.github.com
+  authCacheSeconds: 300
+
+# Database migrations, run by a Job before each install and upgrade.
+migrations:
+  enabled: true
+  resources: {}
+
+# Writes the ready-made QGIS project and default style into the database, after each
+# install and upgrade. `host` is the database host as QGIS users reach it, which is
+# often not the in-cluster name.
+qgisProject:
+  enabled: false
+  host: ""
+  port: 5432
+  dbname: lineage
+  resources: {}
+
+# Loads historical county boundaries (Newberry Library atlas, ~50 MB download) for the
+# QGIS project's county layer, after install and upgrade; skips if already loaded.
+counties:
+  enabled: false
+  image:
+    repository: ghcr.io/line-age/store-counties
+    tag: ""
+    pullPolicy: IfNotPresent
+  # Key in database.existingSecret with the GDAL form of the same database:
+  # PG:host=... port=5432 dbname=... user=... password=...
+  pgUrlKey: PG_URL
+  resources: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  #  - host: store.example.org
+  #    paths: [{path: /, pathType: Prefix}]
+  tls: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile: {type: RuntimeDefault}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: [ALL]}
+
+resources: {}
+#  requests: {cpu: 100m, memory: 256Mi}
+#  limits: {memory: 512Mi}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
