@@ -1,0 +1,61 @@
+name: charts
+on:
+  push: {branches: [main]}
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Lint and validate every chart
+        run: |
+          for chart in charts/*/; do
+            helm lint "$chart" -f "$chart/ci/values.yaml"
+            helm template t "$chart" -f "$chart/ci/values.yaml" -f "$chart/ci/everything-on.yaml" > "/tmp/$(basename "$chart").yaml"
+          done
+          docker run --rm -v /tmp:/d:ro ghcr.io/yannh/kubeconform:v0.6.7 -strict -summary /d/store.yaml
+
+  # Installs the store chart in kind from the published images, with a throwaway PostGIS.
+  install-store:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - uses: helm/kind-action@v1
+      - run: kubectl apply -f charts/store/ci/postgis.yaml && kubectl rollout status deploy/postgis --timeout=300s
+      - run: helm install store charts/store --wait --timeout 10m -f charts/store/ci/values.yaml -f charts/store/ci/everything-on.yaml
+      - name: The API answers and the Jobs did their work
+        run: |
+          kubectl port-forward svc/store 18080:80 & sleep 3
+          curl -fsS localhost:18080/healthz
+          kubectl exec deploy/postgis -- psql -U lineage -d lineage -Atc "select count(*) from qgis.qgis_projects" | grep -qx 1
+          test "$(kubectl exec deploy/postgis -- psql -U lineage -d lineage -Atc 'select count(*) > 4000 from reference.historical_county')" = t
+      - run: helm upgrade store charts/store --wait --timeout 10m --reuse-values
+      - if: failure()
+        run: kubectl get pods,jobs -A; kubectl logs -l app.kubernetes.io/instance=store --all-containers --tail=100 || true
+
+  # main: publish each chart whose version isn't published yet, to oci://ghcr.io/line-age/charts.
+  publish:
+    if: github.event_name == 'push'
+    needs: install-store
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - run: |
+          for chart in charts/*/; do
+            name=$(helm show chart "$chart" | sed -n 's/^name: //p')
+            version=$(helm show chart "$chart" | sed -n 's/^version: //p')
+            if helm show chart "oci://ghcr.io/${{ github.repository_owner }}/charts/$name" --version "$version" >/dev/null 2>&1; then
+              echo "$name $version already published"; continue
+            fi
+            helm package "$chart" -d /tmp/charts
+            helm push "/tmp/charts/$name-$version.tgz" "oci://ghcr.io/${{ github.repository_owner }}/charts"
+          done

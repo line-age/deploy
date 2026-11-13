@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "store.fullname" . }}
+  labels:
+    {{- include "store.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "store.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "store.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "store.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- include "store.podCommon" . | nindent 6 }}
+      containers:
+        - name: api
+          image: {{ include "store.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["lineage-store", "serve", "--port", "8000"]
+          env:
+            {{- include "store.databaseEnv" . | nindent 12 }}
+            - name: LINEAGE_GITHUB_TEAMS
+              value: {{ join "," .Values.github.teams | quote }}
+            - name: LINEAGE_GITHUB_API
+              value: {{ .Values.github.api | quote }}
+            - name: LINEAGE_AUTH_CACHE_SECONDS
+              value: {{ .Values.github.authCacheSeconds | quote }}
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}

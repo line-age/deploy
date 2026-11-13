@@ -1,0 +1,49 @@
+{{- if .Values.qgisProject.enabled }}
+# Writes the ready-made QGIS project (Project > Open From > PostgreSQL > qgis > Lineage)
+# and the default sections style into the database. No credentials go in the project;
+# each QGIS user connects as themselves.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "store.fullname" . }}-qgis-project
+  labels:
+    {{- include "store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: qgis-project
+  annotations:
+    {{- include "store.hookAnnotations" (dict "hook" "post-install,post-upgrade" "weight" 0) | nindent 4 }}
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "store.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: qgis-project
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      {{- include "store.podCommon" . | nindent 6 }}
+      containers:
+        - name: qgis-project
+          image: {{ include "store.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - lineage-store
+            - qgis
+            - install
+            - --host
+            - {{ required "qgisProject.host is required: the database host as QGIS users reach it" .Values.qgisProject.host | quote }}
+            - --port
+            - {{ .Values.qgisProject.port | quote }}
+            - --dbname
+            - {{ .Values.qgisProject.dbname | quote }}
+          env:
+            {{- include "store.databaseEnv" . | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.qgisProject.resources | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+{{- end }}

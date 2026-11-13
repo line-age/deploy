@@ -1,0 +1,15 @@
+Lineage store is installed as {{ include "store.fullname" . }}.
+
+Check it:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "store.fullname" . }} 8000:{{ .Values.service.port }}
+  curl http://localhost:8000/healthz
+
+Admin commands run in the API pod, which has the database URL:
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "store.fullname" . }} -- \
+    lineage-store token create backport --pipeline backport@<sha> --assert-for-others
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "store.fullname" . }} -- \
+    lineage-store agent add --github <login> --name "<name>" --email <email>
+{{- if not .Values.github.teams }}
+
+github.teams is empty, so nobody can sign in with GitHub; only pipeline tokens work.
+{{- end }}

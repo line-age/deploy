@@ -1,0 +1,39 @@
+{{- if .Values.migrations.enabled }}
+# Runs the store's migrations before the API starts or changes. dbmate waits for the
+# database, applies what's pending, and does nothing if nothing is.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "store.fullname" . }}-migrate
+  labels:
+    {{- include "store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    {{- include "store.hookAnnotations" (dict "hook" "pre-install,pre-upgrade" "weight" -5) | nindent 4 }}
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "store.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      {{- include "store.podCommon" . | nindent 6 }}
+      containers:
+        - name: migrate
+          image: {{ include "store.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["dbmate", "--wait", "up"]
+          env:
+            {{- include "store.databaseEnv" . | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+{{- end }}

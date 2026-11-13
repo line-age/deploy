@@ -1,0 +1,14 @@
+apiVersion: v2
+name: store
+description: Lineage store - the claims database API, its migrations, and optional QGIS and county-line setup
+type: application
+version: 0.1.0
+# The store image tag used when values don't name one. `main` until store tags releases.
+appVersion: "main"
+home: https://github.com/line-age/store
+sources:
+  - https://github.com/line-age/store
+  - https://github.com/line-age/deploy
+maintainers:
+  - name: line-age/team-deploy
+    url: https://github.com/orgs/line-age/teams/team-deploy
