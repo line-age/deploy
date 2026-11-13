@@ -1,0 +1,51 @@
+.github/workflows/charts.yml
+  s_111c4f7ff198f4::t_615162d40758ac 1-61
+README.md
+  s_111c4f7ff198f4::t_6e0729445eb398 7-17
+charts/store/Chart.yaml
+  s_111c4f7ff198f4::t_95af554f726af1 1-14
+charts/store/README.md
+  s_111c4f7ff198f4::t_1696345060be0c 1-58
+charts/store/ci/everything-on.yaml
+  s_111c4f7ff198f4::t_0ed6cefd9ee57c 1-8
+charts/store/ci/postgis.yaml
+  s_111c4f7ff198f4::t_573d0d786dbffb 1-39
+charts/store/ci/values.yaml
+  s_111c4f7ff198f4::t_832a1685e39ef4 1-3
+charts/store/templates/NOTES.txt
+  s_111c4f7ff198f4::t_d2e228f5cd43b9 1-15
+charts/store/templates/_helpers.tpl
+  s_111c4f7ff198f4::t_bf9b489bcb3b2c 1-78
+charts/store/templates/deployment.yaml
+  s_111c4f7ff198f4::t_b0972d7099fbfa 1-57
+charts/store/templates/ingress.yaml
+  s_111c4f7ff198f4::t_3460df2dfb9ec5 1-34
+charts/store/templates/job-counties.yaml
+  s_111c4f7ff198f4::t_4339f6ee9aaf14 1-43
+charts/store/templates/job-migrate.yaml
+  s_111c4f7ff198f4::t_931ff374f2c09a 1-39
+charts/store/templates/job-qgis-project.yaml
+  s_111c4f7ff198f4::t_286ce7ce445125 1-49
+charts/store/templates/service.yaml
+  s_111c4f7ff198f4::t_a794c9fbb0ea56 1-14
+charts/store/templates/serviceaccount.yaml
+  s_111c4f7ff198f4::t_7227da816e1ba6 1-13
+charts/store/values.yaml
+  s_111c4f7ff198f4::t_daa0915ccc1f1c 1-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "156cf2e3db8978a8964908fc71477088ffa9e69b",
+  "prompts": {},
+  "sessions": {
+    "s_111c4f7ff198f4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eb1e86d2-0b65-4658-8723-7a1f0ae8a2dd",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Nick Marden <nmarden@avvo.com>"
+    }
+  }
+}
